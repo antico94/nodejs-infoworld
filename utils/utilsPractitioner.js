@@ -1,6 +1,5 @@
 const database = require('../db/db');
-const {request} = require('express');
-const e = require('express');
+const _ = require('underscore');
 
 const isPractitionerActive = (body) => {
   return body.active;
@@ -110,7 +109,35 @@ const isIdAndNameValid = (json) => {
   return result;
 };
 
+const decodeBase64 = (encodedKey) => {
+  let buff = Buffer.from(encodedKey, 'base64');
+  return JSON.parse(buff.toString('ascii').replace('"roles"', ',"roles"'));
+};
+
+const isAuthorised = (headers) => {
+  let decoded = decodeBase64(headers['x-vamf-jwt']);
+  return decoded.roles.includes('Admin') ||
+      decoded.roles.includes('Practitioner');
+};
+
+const isMedicFacilityCsv = (csv, headers) => {
+  let allowedFacilities = decodeBase64(headers['x-vamf-jwt']).facility;
+  let medicFacilities = csv.map(({facility}) => ({facility}));
+  medicFacilities = _.keys(_.countBy(medicFacilities,
+      function(medicFacilities) { return medicFacilities.FacilityId; }));
+  return medicFacilities.some(i => allowedFacilities.includes(i));
+};
+
+const isMedicFacilityJson = (json, headers) => {
+  let allowedFacilities = decodeBase64(headers['x-vamf-jwt']).facility;
+  let medicFacilities = json.facility;
+  medicFacilities = _.keys(_.countBy(medicFacilities,
+      function(medicFacilities) { return medicFacilities.value; }));
+  return medicFacilities.some(i => allowedFacilities.includes(i));
+};
+
 module.exports = {
+  isAuthorised,
   isIdAndNameValid,
   showActiveMedics,
   isIdUnique,
@@ -122,4 +149,6 @@ module.exports = {
   isIdPresent,
   isPractitioner,
   convertToJson,
+  isMedicFacilityCsv,
+  isMedicFacilityJson,
 };

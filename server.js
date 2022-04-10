@@ -3,6 +3,7 @@ const practitionerController = require('./controller/practitionerController');
 const port = 9999;
 const app = express();
 
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.text({ type: 'text/csv' }));
